@@ -2,12 +2,13 @@
 # Show Image Build Time
 BUILD_TIME=$(cat /build-timestamp)
 echo "This NFS Image was built on: $BUILD_TIME"
-# ehough/docker-nfs-server: A lightweight, robust, flexible, and containerized NFS server.
+echo "This container started at: $(date +%c)"
+# mekayelanik/docker-nfs-server: A lightweight, customizable, containerized NFS server.
 #
-# https://hub.docker.com/r/erichough/nfs-server
-# https://github.com/ehough/docker-nfs-server
+# https://hub.docker.com/repository/docker/mekayelanik/nfs-server-alpine
+# https://github.com/
 #
-# Copyright (C) 2017-2020  Eric D. Hough
+# Copyright (C) 2023  Muhammad Mekayel Anik
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,10 +27,13 @@ echo "This NFS Image was built on: $BUILD_TIME"
 ### constants
 ######################################################################################
 # Recreate "exports" file if "/etc/exports" already exists
-if [ -e /etc/exports ]
-then
+if [ -e /etc/exports ]; then
 rm -rf touch /etc/exports
 touch /etc/exports
+fi
+if [ -e "${NFS_ROOT_DIR}" ]; then
+	:
+else mkdir -p "${NFS_ROOT_DIR}"
 fi
 # Define Export Settings
 # Allowed Clients
@@ -39,42 +43,73 @@ if [ -z "${ALLOWED_CLIENT}" ]; then
 fi
 # Share is Sync or Async
 if [ "${SYNC}" == 'sync' ]; then
-  SYNC="sync"
+  :
 elif [ "${SYNC}" == 'async' ]; then
-  SYNC="async"
+  :
 else SYNC="async"
 fi
 # Share is READ-WRITE or READ-ONLY
 if [ "${READ_WRITE}" == 'ro' ]; then
-  READ_WRITE="ro"
+  :
 elif [ "${READ_WRITE}" == 'rw' ]; then
-  READ_WRITE="rw"
+  :
 else READ_WRITE="rw"
 fi
-# ROOT SQUASH or NO_ROOT_SQUASH
-if [ "${ROOT_SQUASH}" == 'root_squash' ]; then
-  ROOT_SQUASH="root_squash"
-elif [ "${ROOT_SQUASH}" == 'no_root_squash' ]; then
-  ROOT_SQUASH="no_root_squash"
+# Share's ROOT-SQUASH settings
+if [ "${ROOT_SQUASH}" == 'no_root_squash' ]; then
+  :
+elif [ "${ROOT_SQUASH}" == 'root_squash' ]; then
+  :
 else ROOT_SQUASH="no_root_squash"
 fi
-SETTINGS="${READ_WRITE},insecure,${SYNC},no_subtree_check,${ROOT_SQUASH},no_auth_nlm"
+# Share's SECURE settings
+if [ "${SECURE}" == 'insecure' ]; then
+  :
+elif [ "${SECURE}" == 'secure' ]; then
+  :
+else SECURE="insecure"
+fi
+# Share's SUBTREE_CHECK settings
+if [ "${SUBTREE_CHECK}" == 'no_subtree_check' ]; then
+  :
+elif [ "${SUBTREE_CHECK}" == 'subtree_check' ]; then
+  :
+else SUBTREE_CHECK="no_subtree_check"
+fi
+# Share's NLM settings
+if [ "${NLM}" == 'no_auth_nlm' ]; then
+  :
+elif [ "${NLM}" == 'auth_nlm' ]; then
+  :
+else NLM="no_auth_nlm"
+fi
+
+SETTINGS="${READ_WRITE},${SECURE},${SYNC},${SUBTREE_CHECK},${ROOT_SQUASH},${NLM}"
 # Craete Exports
 # Root Exort
 # Create NFS Root Directory
 mkdir -p "${NFS_ROOT_DIR}"
 chmod 700 "${NFS_ROOT_DIR}"
-NFS_EXPORT_ROOT="${NFS_ROOT_DIR} ${ALLOWED_CLIENT}(fsid=0,${NFS_EXPORT_ROOT})"
+# Set NFS ROOT export in /etc/exports 
+NFS_EXPORT_ROOT="${NFS_ROOT_DIR} ${ALLOWED_CLIENT}(fsid=0,${SETTINGS})"
 echo "${NFS_EXPORT_ROOT}" >> /etc/exports
 
 # Set user defined NFS exports in /etc/exports 
-for ((i=1; i<=${NUMBER_OF_SHARES}; i++)) do
+if [ "${NUMBER_OF_SHARES}" -gt 0 ]; then
+for ((i=1; i<=NUMBER_OF_SHARES; i++)) do
       NFS_EXPORT="NFS_EXPORT_${i}"
   if [ -n "${!NFS_EXPORT}" ]; then
 	echo "${NFS_ROOT_DIR}/${!NFS_EXPORT} ${ALLOWED_CLIENT}(${SETTINGS})" >> /etc/exports
         unset NFS_EXPORT
+  else echo "You have set value of NUMBER_OF_SHARES to ${NUMBER_OF_SHARES}."
+       echo "You have to set value of each:"
+       for ((j=1; j<=NUMBER_OF_SHARES; j++)) do
+	        echo "NFS_EXPORT_${j}"
+       done
+       echo "Exitting..."
   fi
 done
+fi
 modprobe nfs nfsd
 readonly ENV_VAR_NFS_DISABLE_VERSION_3='NFS_DISABLE_VERSION_3'
 readonly ENV_VAR_NFS_SERVER_THREAD_COUNT='NFS_SERVER_THREAD_COUNT'
@@ -927,10 +962,6 @@ summarize() {
 hangout() {
 
   log_header 'ready and waiting for NFS client connections'
-
-  # wait forever or until we get SIGTERM or SIGINT
-  # https://stackoverflow.com/a/41655546/229920
-  # https://stackoverflow.com/a/27694965/229920
   while :; do sleep 2073600 & wait; done
 }
 

@@ -3,7 +3,14 @@ FROM alpine:$ALPINE_VERSION
 ARG TZ=Asia/Dhaka
 RUN date +%c > /build-timestamp
 ENV NFS_MOUNT_PORT=2049 \
-    NFS_ROOT_DIR=/nfs-shares
+    NFS_ROOT_DIR=/nfs-shares \
+    NUMBER_OF_SHARES=0 \
+    READ_WRITE=rw \
+    SYNC=sync \
+    ROOT_SQUASH=no_root_squash \
+    SECURE=insecure \
+    SUBTREE_CHECK=no_subtree_check \
+    NLM=no_auth_nlm
 
 RUN apk --update --no-cache add bash nfs-utils tzdata libcap && \
     # remove the default config files
