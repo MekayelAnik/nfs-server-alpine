@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # Show Image Build Time
-BUILD_TIME=$(cat /build-timestamp)
-echo "This NFS Image was built on: $BUILD_TIME"
+apk --update --no-cache upgrade > /dev/null
+IP=$(hostname -i)
+bash /usr/local/bin/banner.sh
+echo "This NFS Image was built on: $(cat /usr/bin/build-timestamp)"
 echo "This container started at: $(date +%c)"
-# mekayelanik/docker-nfs-server: A lightweight, customizable, containerized NFS server.
+echo "IP address of this container is: $IP & Hostname is: $(hostname)"
+# mekayelanik/docker-nfs-server: A lightweight, highly customizable, containerized NFS server.
 #
 # https://hub.docker.com/repository/docker/mekayelanik/nfs-server-alpine
 # https://github.com/
@@ -99,14 +102,16 @@ if [ "${NUMBER_OF_SHARES}" -gt 0 ]; then
 for ((i=1; i<=NUMBER_OF_SHARES; i++)) do
       NFS_EXPORT="NFS_EXPORT_${i}"
   if [ -n "${!NFS_EXPORT}" ]; then
-	echo "${NFS_ROOT_DIR}/${!NFS_EXPORT} ${ALLOWED_CLIENT}(${SETTINGS})" >> /etc/exports
+	echo "${NFS_ROOT_DIR}${!NFS_EXPORT} ${ALLOWED_CLIENT}(${SETTINGS})" >> /etc/exports
         unset NFS_EXPORT
-  else echo "You have set value of NUMBER_OF_SHARES to ${NUMBER_OF_SHARES}."
+  elif [ -z "${!NFS_EXPORT}" ]; then
+       echo "You have set value of NUMBER_OF_SHARES to ${NUMBER_OF_SHARES}."
        echo "You have to set value of each:"
        for ((j=1; j<=NUMBER_OF_SHARES; j++)) do
 	        echo "NFS_EXPORT_${j}"
        done
        echo "Exitting..."
+       exit 1
   fi
 done
 fi
@@ -914,7 +919,6 @@ summarize_ports() {
   fi
 }
 
-
 ######################################################################################
 ### main routines
 ######################################################################################
@@ -962,7 +966,12 @@ summarize() {
 hangout() {
 
   log_header 'ready and waiting for NFS client connections'
-  while :; do sleep 2073600 & wait; done
+
+  while :; 
+  do	
+	echo -e "\r\033[K$(netstat -an | grep ${IP}:${NFS_MOUNT_PORT})"
+        sleep 30 & wait;
+  done
 }
 
 main() {
