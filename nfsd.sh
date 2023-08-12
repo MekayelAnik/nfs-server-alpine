@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-#
+# Show Image Build Time
+BUILD_TIME=$(cat /build-timestamp)
+echo "This NFS Image was built on: $BUILD_TIME"
 # ehough/docker-nfs-server: A lightweight, robust, flexible, and containerized NFS server.
 #
 # https://hub.docker.com/r/erichough/nfs-server
@@ -30,39 +32,46 @@ rm -rf touch /etc/exports
 touch /etc/exports
 fi
 # Define Export Settings
-if [ -n "${ALLOWED_CLIENT}" ]; then
-  echo "The value ALLOWED_CLIENT must be set to Client IP/Hostname/URL. Exiting..."
+# Allowed Clients
+if [ -z "${ALLOWED_CLIENT}" ]; then
+  echo "The environment variable ALLOWED_CLIENT must be set to Client IP/Hostname. Exiting..."
   exit 1
 fi
+# Share is Sync or Async
 if [ "${SYNC}" == 'sync' ]; then
   SYNC="sync"
 elif [ "${SYNC}" == 'async' ]; then
   SYNC="async"
 else SYNC="async"
 fi
+# Share is READ-WRITE or READ-ONLY
 if [ "${READ_WRITE}" == 'ro' ]; then
-  READ-WRITE="ro"
+  READ_WRITE="ro"
 elif [ "${READ_WRITE}" == 'rw' ]; then
   READ_WRITE="rw"
 else READ_WRITE="rw"
 fi
+# ROOT SQUASH or NO_ROOT_SQUASH
 if [ "${ROOT_SQUASH}" == 'root_squash' ]; then
   ROOT_SQUASH="root_squash"
 elif [ "${ROOT_SQUASH}" == 'no_root_squash' ]; then
   ROOT_SQUASH="no_root_squash"
 else ROOT_SQUASH="no_root_squash"
 fi
-SETTINGS="(${READ_WRITE},insecure,${SYNC},no_subtree_check,${ROOT_SQUASH},no_auth_nlm)"
-#Define ROOT of the export
-NFS_EXPORT_ROOT="/nfs-shares ${ALLOWED_CLIENT}(fsid=0,${READ-WRITE},insecure,${SYNC},no_subtree_check,${ROOT-SQUASH},no_auth_nlm)"
+SETTINGS="${READ_WRITE},insecure,${SYNC},no_subtree_check,${ROOT_SQUASH},no_auth_nlm"
+# Craete Exports
+# Root Exort
+# Create NFS Root Directory
+mkdir -p "${NFS_ROOT_DIR}"
+chmod 700 "${NFS_ROOT_DIR}"
+NFS_EXPORT_ROOT="${NFS_ROOT_DIR} ${ALLOWED_CLIENT}(fsid=0,${NFS_EXPORT_ROOT})"
 echo "${NFS_EXPORT_ROOT}" >> /etc/exports
 
 # Set user defined NFS exports in /etc/exports 
-for ((i=${NUMBER_OF_SHARES}; i>=1; i--))
-do
+for ((i=1; i<=${NUMBER_OF_SHARES}; i++)) do
       NFS_EXPORT="NFS_EXPORT_${i}"
   if [ -n "${!NFS_EXPORT}" ]; then
-	echo "/nfs-shares/${!NFS_EXPORT} ${ALLOWED_CLIENT}${SETTINGS}" >> /etc/exports
+	echo "${NFS_ROOT_DIR}/${!NFS_EXPORT} ${ALLOWED_CLIENT}(${SETTINGS})" >> /etc/exports
         unset NFS_EXPORT
   fi
 done
@@ -77,7 +86,7 @@ readonly ENV_VAR_NFS_PORT_STATD_OUT='NFS_PORT_STATD_OUT'
 readonly ENV_VAR_NFS_VERSION='NFS_VERSION'
 readonly ENV_VAR_NFS_LOG_LEVEL='NFS_LOG_LEVEL'
 
-readonly DEFAULT_NFS_PORT=2049
+readonly DEFAULT_NFS_PORT="${NFS_MOUNT_PORT}"
 readonly DEFAULT_NFS_PORT_MOUNTD=32767
 readonly DEFAULT_NFS_PORT_STATD_IN=32765
 readonly DEFAULT_NFS_PORT_STATD_OUT=32766
@@ -316,7 +325,7 @@ is_kernel_module_loaded() {
 
 is_granted_linux_capability() {
 
-  if capsh --has-p=${1} || capsh --has-p=cap_${1}; then
+  if capsh --has-p="${1}" || capsh --has-p=cap_"${1}"; then
     return 0
   fi
   
