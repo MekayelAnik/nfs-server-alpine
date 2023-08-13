@@ -3,8 +3,8 @@
 apk --update --no-cache upgrade > /dev/null
 IP=$(hostname -i)
 bash /usr/local/bin/banner.sh
-echo "This NFS Image was built on: $(cat /usr/bin/build-timestamp)"
-echo "This container started at: $(date +%c)"
+cat /usr/bin/build-timestamp
+echo "This container started at: $(date +%c): Local Time (UTC $(date +%Z))"
 echo "IP address of this container is: $IP & Hostname is: $(hostname)"
 # mekayelanik/docker-nfs-server: A lightweight, highly customizable, containerized NFS server.
 #
@@ -963,23 +963,16 @@ summarize() {
   summarize_ports
 }
 
-hangout() {
-
-  log_header 'ready and waiting for NFS client connections'
-
-  while :; 
-  do	
-	echo -e "\r\033[K$(netstat -an | grep ${IP}:${NFS_MOUNT_PORT})"
-        sleep 30 & wait;
-  done
-}
-
 main() {
 
   init
   boot
   summarize
-  hangout
+  log_header 'ready and waiting for NFS client connections'
+echo "======================================================================================"
+echo "Protocol Recv-Q Send-Q Server Address	     Client Address      Connection Status"
+echo "======================================================================================"
+while true; do echo -e "\r\033[K$(netstat -an | grep "${IP}":"${NFS_MOUNT_PORT}")"; sleep 60 & wait; done
 }
 
 main
