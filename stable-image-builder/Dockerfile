@@ -11,7 +11,7 @@ ENV NFS_MOUNT_PORT=2049 \
     SUBTREE_CHECK=no_subtree_check \
     NLM=no_auth_nlm
 COPY --chmod=444 ./build-timestamp /usr/bin
-RUN apk --update --no-cache add bash nfs-utils tzdata libcap net-tools && \
+RUN apk --update --no-cache add bash net-tools nfs-utils tzdata libcap && \
     # remove the default config files
     rm -v /etc/idmapd.conf /etc/exports && \
     # http://wiki.linux-nfs.org/wiki/index.php/Nfsv4_configuration
