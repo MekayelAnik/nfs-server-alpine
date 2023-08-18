@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
 # Show Image Build Time
-apk --update --no-cache upgrade > /dev/null
-IP=$(hostname -i)
 bash /usr/local/bin/banner.sh
-cat /usr/bin/build-timestamp
-echo "This container started at: $(date +%c): Local Time (UTC $(date +%Z))"
-echo "IP address of this container is: $IP & Hostname is: $(hostname)"
 # mekayelanik/docker-nfs-server: A lightweight, highly customizable, containerized NFS server.
 #
 # https://hub.docker.com/repository/docker/mekayelanik/nfs-server-alpine
@@ -33,10 +28,6 @@ echo "IP address of this container is: $IP & Hostname is: $(hostname)"
 if [ -e /etc/exports ]; then
 rm -rf touch /etc/exports
 touch /etc/exports
-fi
-if [ -e "${NFS_ROOT_DIR}" ]; then
-	:
-else mkdir -p "${NFS_ROOT_DIR}"
 fi
 # Define Export Settings
 # Allowed Clients
@@ -91,10 +82,9 @@ SETTINGS="${READ_WRITE},${SECURE},${SYNC},${SUBTREE_CHECK},${ROOT_SQUASH},${NLM}
 # Craete Exports
 # Root Exort
 # Create NFS Root Directory
-mkdir -p "${NFS_ROOT_DIR}"
-chmod 700 "${NFS_ROOT_DIR}"
+
 # Set NFS ROOT export in /etc/exports 
-NFS_EXPORT_ROOT="${NFS_ROOT_DIR} ${ALLOWED_CLIENT}(fsid=0,${SETTINGS})"
+NFS_EXPORT_ROOT="/data ${ALLOWED_CLIENT}(fsid=0,${SETTINGS})"
 echo "${NFS_EXPORT_ROOT}" >> /etc/exports
 
 # Set user defined NFS exports in /etc/exports 
@@ -102,7 +92,7 @@ if [ "${NUMBER_OF_SHARES}" -gt 0 ]; then
 for ((i=1; i<=NUMBER_OF_SHARES; i++)) do
       NFS_EXPORT="NFS_EXPORT_${i}"
   if [ -n "${!NFS_EXPORT}" ]; then
-	echo "${NFS_ROOT_DIR}${!NFS_EXPORT} ${ALLOWED_CLIENT}(${SETTINGS})" >> /etc/exports
+	echo "/data/${!NFS_EXPORT} ${ALLOWED_CLIENT}(${SETTINGS})" >> /etc/exports
         unset NFS_EXPORT
   elif [ -z "${!NFS_EXPORT}" ]; then
        echo "You have set value of NUMBER_OF_SHARES to ${NUMBER_OF_SHARES}."
