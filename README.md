@@ -98,13 +98,13 @@ services:
   -e TZ=Asia/Dhaka \
   -e NFS_MOUNT_PORT=2049 \
   -e NUMBER_OF_SHARES=2 \
-  -e NFS_EXPORT_1=share1
-  -e NFS_EXPORT_2=share2
-  -e TZ=Asia/Dhaka
-  -e ALLOWED_CLIENT=192.168.1.1/24
-  -v /path/to/root-data:/data
-  -v /path/to/shared-data1:/data/share1
-  -v /path/to/shared-data2:/data/share2
+  -e NFS_EXPORT_1=share1 \
+  -e NFS_EXPORT_2=share2 \
+  -e TZ=Asia/Dhaka \
+  -e ALLOWED_CLIENT=192.168.1.1/24 \
+  -v /path/to/root-data:/data \
+  -v /path/to/shared-data1:/data/share1 \
+  -v /path/to/shared-data2:/data/share2 \
   --restart unless-stopped \
   mekayelanik/nfs-server-alpine:latest
 </code></pre>
