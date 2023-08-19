@@ -1,6 +1,6 @@
 <h1>NFS Server multi-arch image</h1>
 <p>A Multi-Aarch image for lightweight, highly customizable, containerized NFS server</p>
-<img alt="NFS" src="https://linux-nfs.org/wiki/logo.png">
+<img alt="NFS" src="http://www.linux-nfs.org/wiki/logo.png">
 <p>This is an unofficial Multi-Aarch docker image of NFS Server created for multiplatform support. This image creates a local NFS Server to facilitate client-side data transfer. Official Website: <a href="https://wiki.linux-nfs.org" rel="nofollow noopener">https://wiki.linux-nfs.org</a>
 </p>
 <h2>The architectures supported by this image are:</h2>
