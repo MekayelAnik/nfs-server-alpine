@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Show Image Build Time
-bash /usr/local/bin/banner.sh
+bash /usr/bin/banner.sh
 # mekayelanik/docker-nfs-server: A lightweight, highly customizable, containerized NFS server.
 #
 # https://hub.docker.com/repository/docker/mekayelanik/nfs-server-alpine

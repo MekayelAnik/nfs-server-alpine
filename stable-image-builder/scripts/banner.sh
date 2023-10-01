@@ -64,7 +64,7 @@ echo -e " Or in /etc/fstab make entry: $(hostname -i):/YOUR-SHARE-NAME    /path/
 echo -e " Always use the latest version to avoid vulnerabilities"
 echo -e " Configure this NFS server using Docker Environment Variables"
 echo -e " For more details, please visit: https://hub.docker.com/r/mekayelanik/nfs-server-alpine\n\n"
-cat /usr/bin/build-timestamp
+$(cat /usr/bin/build-timestamp)
 echo "This container started at: $(date): Local Time (UTC $(date +%Z))"
 echo "IP address of this container is: $(hostname -i)  & Hostname is: $(hostname)" 
 exit 0
