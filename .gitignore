@@ -1,7 +1,2 @@
-
-stable-image-builder/*.log
-test-image-builder/*.log
-latest-image-builder/*.log
-stable-image-builder/scripts/build-timestamp
-test-image-builder/scripts/build-timestamp
-latest-image-builder/scripts/build-timestamp
+build_logs
+build_data
