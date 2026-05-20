@@ -4,6 +4,30 @@
 <p>This is an unofficial Multi-Aarch docker image of NFS Server created for multiplatform support. This image creates a local NFS Server to facilitate client-side data transfer. Official Website: <a href="https://wiki.linux-nfs.org" rel="nofollow noopener">https://wiki.linux-nfs.org</a>
 </p>
 <img alt="Docker Pulls" src="https://img.shields.io/docker/pulls/mekayelanik/nfs-server-alpine.svg"><img alt="Docker Stars" src="https://img.shields.io/docker/stars/mekayelanik/nfs-server-alpine.svg">
+<!-- COMPONENT_VERSIONS_START -->
+<h2>Component Versions</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Component</th>
+      <th>Source</th>
+      <th>Current Version</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>NFS Utils</td>
+      <td><a href="https://pkgs.alpinelinux.org/package/edge/main/x86_64/nfs-utils">Alpine edge/main</a></td>
+      <td><code>2.7.1-r0</code></td>
+    </tr>
+    <tr>
+      <td>Alpine Base</td>
+      <td><a href="https://hub.docker.com/_/alpine">alpine:edge</a></td>
+      <td><code>edge</code></td>
+    </tr>
+  </tbody>
+</table>
+<!-- COMPONENT_VERSIONS_END -->
 <h2>The architectures supported by this image are:</h2>
 <table>
   <thead>
@@ -35,6 +59,7 @@
     </tr>
   </tbody>
 </table>
+<!-- VERSION_TAGS_START -->
 <h2>Version Tags</h2>
 <table>
   <thead>
@@ -48,15 +73,16 @@
     <tr>
       <td align="center">latest</td>
       <td align="center">✅</td>
-      <td>Stable "NFS releases</td>
+      <td>Stable NFS releases</td>
     </tr>
     <tr>
-      <td align="center">4.2</td>
+      <td align="center">2.7.1-r0</td>
       <td align="center">✅</td>
-      <td>Static "NFS" build version 4.2</td>
+      <td>NFS Utils build version 2.7.1-r0</td>
     </tr>
   </tbody>
 </table>
+<!-- VERSION_TAGS_END -->
 
 
 <p></p>
