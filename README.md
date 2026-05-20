@@ -127,7 +127,7 @@ services:
     privileged: true
     volumes:
 # # Don't touch the FOLLOWING Mapping (/lib/modules). This is REQUIRED to run NFS as a container. ('sys_module' modprobe )
-      - /lib/modules:/lib/modules
+      - /lib/modules:/lib/modules:ro
 # NFS Root directory in this container '/data' MUST BE MAPPED to a valid directory in the Host (Server Machine)
 ## You CAN'T use different parent directory (for example /mnt/drive2/Movies) for child shares.
 ### To share different Child shares on another Parent directory, you must use deploy another container. (Sorry, but this is how the NFS works)
@@ -149,14 +149,17 @@ services:
 <h3>docker cli ( <a href="https://docs.docker.com/engine/reference/commandline/cli/" rel="nofollow noopener">click here for more info</a>) </h3>
 <pre><code>docker run -d \
   --name=nfs-server-alpine \
-  -e TZ=Asia/Dhaka \
-  -e NFS_MOUNT_PORT=2049 \
-  -e NUMBER_OF_SHARES=2 \
-  -e NFS_EXPORT_1=Movies\
-  -e NFS_EXPORT_2=Music\
+  --privileged \
   -e TZ=Asia/Dhaka \
   -e ALLOWED_CLIENT=192.168.1.1/24 \
-  -v /lib/modules:/lib/modules \
+  -e NFS_MOUNT_PORT=2049 \
+  -e NUMBER_OF_SHARES=2 \
+  -e NFS_EXPORT_1=Movies \
+  -e NFS_EXPORT_2=Music \
+  -p 2049:2049 \
+  -p 111:111 \
+  -p 32765-32767:32765-32767 \
+  -v /lib/modules:/lib/modules:ro \
   -v /mnt/drive1:/data \
   -v /mnt/drive1/Movies:/data/Movies \
   -v /mnt/drive1/Music:/data/Music \
@@ -195,7 +198,7 @@ services:
     privileged: true
     volumes:
 # # Don't touch the FOLLOWING Mapping (/lib/modules). This is REQUIRED to run NFS as a container. ('sys_module' modprobe )
-      - /lib/modules:/lib/modules
+      - /lib/modules:/lib/modules:ro
 # NFS Root directory in this container '/data' MUST BE MAPPED to a valid directory in the Host (Server Machine)
 ## You CAN'T use different parent directory (for example /mnt/drive2/Movies) for child shares.
 ### To share different Child shares on another Parent directory, you must use deploy another container. (Sorry, but this is how the NFS works)
@@ -244,7 +247,7 @@ services:
         privileged: true
         volumes:
         ### Don't touch the FOLLOWING Mapping (/lib/modules). This is REQUIRED to run NFS as a container. ('sys_module' modprobe )  ###
-            - /lib/modules:/lib/modules
+            - /lib/modules:/lib/modules:ro
     # NFS Root directory in this container '/data' MUST BE MAPPED to a valid directory in the Host (Server Machine)
     ## You CAN'T use different parent directory (for example /mnt/drive2/Movies) for child shares.
     ### To share different Child shares on another Parent directory, you must use deploy another container. (Sorry, but this is how the NFS works)
@@ -283,7 +286,7 @@ services:
         privileged: true
         volumes:
         # # Don't touch the FOLLOWING Mapping (/lib/modules). This is REQUIRED to run NFS as a container. ('sys_module' modprobe )
-            - /lib/modules:/lib/modules
+            - /lib/modules:/lib/modules:ro
         # NFS Root directory in this container '/data' MUST BE MAPPED to a valid directory in the Host (Server Machine)
         ## You CAN'T use different parent directory (for example /mnt/drive2/Movies) for child shares.
         ### To share different Child shares on another Parent directory, you must use deploy another container. (Sorry, but this is how the NFS works)
