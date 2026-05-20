@@ -18,7 +18,7 @@
     <tr>
       <td>NFS Utils</td>
       <td><a href="https://pkgs.alpinelinux.org/package/edge/main/x86_64/nfs-utils">Alpine edge/main</a></td>
-      <td><code>2.7.1-r0</code></td>
+      <td><code>2.6.4-r6</code></td>
     </tr>
     <tr>
       <td>Alpine Base</td>
@@ -76,9 +76,9 @@
       <td>Stable NFS releases</td>
     </tr>
     <tr>
-      <td align="center">2.7.1-r0</td>
+      <td align="center">2.6.4-r6</td>
       <td align="center">✅</td>
-      <td>NFS Utils build version 2.7.1-r0</td>
+      <td>NFS Utils build version 2.6.4-r6</td>
     </tr>
   </tbody>
 </table>
