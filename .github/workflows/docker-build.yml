@@ -103,6 +103,19 @@ env:
   GHCR_REPO: ${{ vars.GHCR_REPO || format('ghcr.io/{0}/nfs-server-alpine', github.repository_owner) }}
   DEFAULT_PLATFORMS: ${{ vars.DEFAULT_PLATFORMS || 'linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6,linux/riscv64,linux/ppc64le,linux/s390x' }}
   DEFAULT_BASE_IMAGE: ${{ vars.DEFAULT_BASE_IMAGE || 'alpine:edge' }}
+  # repository_dispatch never populates github.event.inputs, so a payload like
+  # {"client_payload":{"force_build":"true"}} was silently ignored. Accept both.
+  FORCE_BUILD: ${{ github.event.inputs.force_build || github.event.client_payload.force_build || 'false' }}
+  # Rebuild even with no upstream version change once the published image is this old,
+  # so Alpine package updates actually reach the image.
+  # Resolution order: client_payload > repo variable > default. Resolved in shell,
+  # since `x != null && x || y` collapses an explicit `false` back to `y`.
+  #
+  #   {"event_type":"...","client_payload":{"package_refresh":false,"max_image_age_days":14}}
+  CP_PACKAGE_REFRESH: ${{ github.event.client_payload.package_refresh }}
+  CP_MAX_IMAGE_AGE_DAYS: ${{ github.event.client_payload.max_image_age_days }}
+  VAR_PACKAGE_REFRESH: ${{ vars.PACKAGE_REFRESH_ENABLED }}
+  VAR_MAX_IMAGE_AGE_DAYS: ${{ vars.MAX_IMAGE_AGE_DAYS }}
 
 jobs:
   # ===========================================================================
@@ -125,6 +138,7 @@ jobs:
       compression_level: ${{ steps.set-compression.outputs.level }}
       build_matrix: ${{ steps.generate-matrix.outputs.matrix }}
       latest_needs_promote: ${{ steps.determine.outputs.latest_needs_promote }}
+      stale_rebuild: ${{ steps.determine.outputs.stale_rebuild }}
 
     steps:
       - name: Set action type
@@ -216,7 +230,7 @@ jobs:
         id: determine
         env:
           ACTION: ${{ steps.set-action.outputs.action }}
-          FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
+          FORCE_BUILD: ${{ env.FORCE_BUILD }}
           UPSTREAM_NFS: ${{ steps.fetch-nfs.outputs.version }}
           STORED_NFS: ${{ steps.read-state.outputs.stored_nfs }}
           MANUAL_NFS: ${{ github.event.inputs.nfs_version }}
@@ -228,6 +242,7 @@ jobs:
           DATE_TAG=$(TZ="${TZ}" date +%d%m%Y)
           SHOULD_BUILD="false"
           LATEST_NEEDS_PROMOTE="false"
+          STALE_REBUILD="false"
 
           NFS_VERSION="${MANUAL_NFS:-$UPSTREAM_NFS}"
 
@@ -244,6 +259,32 @@ jobs:
                 fi
               fi
 
+
+              # Package refresh: upstream version changes are the only other trigger and
+              # they are rare, so without this the image sits while Alpine ships security
+              # updates underneath it. Uses skopeo, matching the rest of this step.
+              PACKAGE_REFRESH="${CP_PACKAGE_REFRESH:-${VAR_PACKAGE_REFRESH:-true}}"
+              MAX_IMAGE_AGE_DAYS="${CP_MAX_IMAGE_AGE_DAYS:-${VAR_MAX_IMAGE_AGE_DAYS:-30}}"
+              if [[ "$SHOULD_BUILD" != "true" && "$PACKAGE_REFRESH" == "true" && "$MAX_IMAGE_AGE_DAYS" != "0" ]]; then
+                CREATED=$(skopeo inspect --no-tags "docker://${{ env.GHCR_REPO }}:latest" 2>/dev/null | jq -r '.Created // empty' || echo "")
+                if [[ -n "$CREATED" ]]; then
+                  CREATED_EPOCH=$(date -d "$CREATED" +%s 2>/dev/null || echo 0)
+                  if [[ "$CREATED_EPOCH" -gt 0 ]]; then
+                    AGE_DAYS=$(( ( $(date +%s) - CREATED_EPOCH ) / 86400 ))
+                    if [[ "$AGE_DAYS" -ge "$MAX_IMAGE_AGE_DAYS" ]]; then
+                      echo "Published image is ${AGE_DAYS}d old (>= ${MAX_IMAGE_AGE_DAYS}d) -- rebuilding to pick up Alpine package updates"
+                      SHOULD_BUILD="true"
+                      STALE_REBUILD="true"
+                    else
+                      echo "Published image is ${AGE_DAYS}d old (< ${MAX_IMAGE_AGE_DAYS}d) -- no package-refresh rebuild"
+                    fi
+                  fi
+                else
+                  echo "::warning::Could not read the creation date of :latest -- skipping the image age check"
+                fi
+              elif [[ "$SHOULD_BUILD" != "true" ]]; then
+                echo "Package-refresh rebuild disabled (package_refresh=$PACKAGE_REFRESH, max_image_age_days=$MAX_IMAGE_AGE_DAYS)"
+              fi
               if [[ "$TAG_AS_LATEST" == "true" && "$SHOULD_BUILD" == "true" ]]; then
                 LATEST_NEEDS_PROMOTE="true"
               elif [[ "$TAG_AS_LATEST" == "true" && -n "$NFS_VERSION" ]]; then
@@ -309,6 +350,7 @@ jobs:
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
           echo "date_tag=$DATE_TAG" >> "$GITHUB_OUTPUT"
           echo "latest_needs_promote=$LATEST_NEEDS_PROMOTE" >> "$GITHUB_OUTPUT"
+          echo "stale_rebuild=$STALE_REBUILD" >> "$GITHUB_OUTPUT"
 
           echo "Build decision: should_build=$SHOULD_BUILD"
           echo "  nfs=$NFS_VERSION"
@@ -321,11 +363,11 @@ jobs:
         if: steps.determine.outputs.should_build == 'true'
         env:
           IMAGE_TAG: ${{ steps.determine.outputs.image_tag }}
-          FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
+          FORCE_BUILD: ${{ env.FORCE_BUILD }}
         run: |
           set -euo pipefail
-          if [[ "$FORCE_BUILD" == "true" ]]; then
-            echo "Force build — skipping existence check"
+          if [[ "$FORCE_BUILD" == "true" || "$STALE_REBUILD" == "true" ]]; then
+            echo "Force build or package refresh — skipping existence check"
             echo "exists=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -343,7 +385,10 @@ jobs:
         id: final-build-decision
         if: steps.determine.outputs.should_build == 'true'
         run: |
-          if [[ "${{ steps.check-existing.outputs.exists }}" == "true" && "${{ github.event.inputs.force_build || 'false' }}" != "true" ]]; then
+          # A package refresh reuses the same version tag on purpose.
+          if [[ "${{ steps.check-existing.outputs.exists }}" == "true" \
+                && "${{ env.FORCE_BUILD }}" != "true" \
+                && "${{ steps.determine.outputs.stale_rebuild }}" != "true" ]]; then
             echo "Tag already exists and force_build not set — skipping build"
             echo "should_build=false" >> "$GITHUB_OUTPUT"
           else
@@ -443,13 +488,16 @@ jobs:
       - name: Check if platform tag exists
         id: check-tag
         env:
-          FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
+          FORCE_BUILD: ${{ env.FORCE_BUILD }}
+          # Without this the job-level exemption is useless: every platform build skips
+          # and the refresh produces nothing at all.
+          STALE_REBUILD: ${{ needs.check-releases.outputs.stale_rebuild }}
           GHCR_REPO: ${{ env.GHCR_REPO }}
           VERSION: ${{ needs.check-releases.outputs.image_tag }}
         run: |
           set -euo pipefail
-          if [[ "$FORCE_BUILD" == "true" ]]; then
-            echo "Force build — skipping existence check"
+          if [[ "$FORCE_BUILD" == "true" || "$STALE_REBUILD" == "true" ]]; then
+            echo "Force build or package refresh — skipping existence check"
             echo "skip_build=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
