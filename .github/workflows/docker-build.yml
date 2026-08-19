@@ -109,6 +109,7 @@ jobs:
   # Job 1: Check upstream releases
   # ===========================================================================
   check-releases:
+    timeout-minutes: 15
     name: Check Alpine NFS Version
     runs-on: ${{ vars.ACTION_RUNNER_VERSION || 'ubuntu-latest' }}
     permissions:
@@ -396,6 +397,7 @@ jobs:
   # Job 2: Build per-platform images
   # ===========================================================================
   build-platform:
+    timeout-minutes: 120
     name: Build ${{ matrix.platform_slug }}
     needs: check-releases
     if: >-
@@ -546,6 +548,7 @@ jobs:
   # Job 2b: Merge platform manifests into multi-arch image
   # ===========================================================================
   merge-manifest:
+    timeout-minutes: 120
     name: Merge Manifest
     needs: [check-releases, build-platform]
     if: ${{ !cancelled() && needs.check-releases.result == 'success' && needs.check-releases.outputs.should_build == 'true' }}
@@ -720,6 +723,7 @@ jobs:
   # Job 3: Sync registries
   # ===========================================================================
   sync-registries:
+    timeout-minutes: 120
     name: Sync Registries
     needs: [check-releases, merge-manifest]
     if: >-
@@ -762,6 +766,7 @@ jobs:
   # Job 4: Promote to latest
   # ===========================================================================
   promote-latest:
+    timeout-minutes: 120
     name: Promote Latest
     needs: [check-releases, merge-manifest]
     if: >-
@@ -871,6 +876,7 @@ jobs:
   # Job 5: Update pipeline state
   # ===========================================================================
   update-state:
+    timeout-minutes: 15
     name: Update Pipeline State
     needs: [check-releases, merge-manifest]
     if: >-
@@ -940,6 +946,7 @@ jobs:
   # Job 6: Update metadata on main branch
   # ===========================================================================
   update-metadata:
+    timeout-minutes: 15
     name: Update Metadata
     needs: [check-releases, merge-manifest, promote-latest]
     if: >-
@@ -987,6 +994,7 @@ jobs:
   # Job 7: Update README version
   # ===========================================================================
   update-readme-version:
+    timeout-minutes: 15
     name: Update README
     needs: [check-releases, promote-latest, update-metadata]
     if: needs.promote-latest.result == 'success'
@@ -1048,6 +1056,7 @@ jobs:
   # Job 8: Update Docker Hub description
   # ===========================================================================
   update-dockerhub-description:
+    timeout-minutes: 15
     name: Update Docker Hub Description
     needs: [update-readme-version]
     if: always() && needs.update-readme-version.result == 'success'
