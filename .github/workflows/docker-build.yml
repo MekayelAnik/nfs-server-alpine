@@ -103,9 +103,13 @@ env:
   GHCR_REPO: ${{ vars.GHCR_REPO || format('ghcr.io/{0}/nfs-server-alpine', github.repository_owner) }}
   DEFAULT_PLATFORMS: ${{ vars.DEFAULT_PLATFORMS || 'linux/amd64,linux/386,linux/arm64,linux/arm/v7,linux/arm/v6,linux/riscv64,linux/ppc64le,linux/s390x' }}
   DEFAULT_BASE_IMAGE: ${{ vars.DEFAULT_BASE_IMAGE || 'alpine:edge' }}
-  # repository_dispatch never populates github.event.inputs, so a payload like
-  # {"client_payload":{"force_build":"true"}} was silently ignored. Accept both.
-  FORCE_BUILD: ${{ github.event.inputs.force_build || github.event.client_payload.force_build || 'false' }}
+  # NOTE: deliberately does NOT read github.event.client_payload.force_build.
+  # The scheduled cron payload has carried force_build:"true" for months while
+  # github.event.inputs was empty for repository_dispatch, so it never took effect.
+  # Honouring it turned every 30-minute poll into a full multi-arch rebuild.
+  # Use the package_refresh knobs below for scheduled rebuilds, or workflow_dispatch
+  # for a genuine one-off force.
+  FORCE_BUILD: ${{ github.event.inputs.force_build || 'false' }}
   # Rebuild even with no upstream version change once the published image is this old,
   # so Alpine package updates actually reach the image.
   # Resolution order: client_payload > repo variable > default. Resolved in shell,
